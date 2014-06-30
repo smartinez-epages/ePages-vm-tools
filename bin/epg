@@ -1,0 +1,183 @@
+#!/bin/bash
+VERSION=1.1
+
+SCRIPT=$0
+NAME=$( basename ${SCRIPT} )
+WRK_DIR=$( dirname ${SCRIPT} )
+TMP_DIR=/tmp/${NAME}.$(date +'%Y%m%d%H%M%S')
+
+REPO_VER=https://github.com/smartinez-epages/ePages-vm-tools/raw/master/version.txt
+REPO_ALL=https://github.com/smartinez-epages/ePages-vm-tools/archive/master.zip
+
+UPDATE_VER=version.txt
+UPDATE_PKG=update.zip
+UPDATE_DIR=ePages-vm-tools-master
+UPDATE_BIN=${UPDATE_DIR}/scripts
+
+#======================================================================================================================
+# main
+#======================================================================================================================
+function main() {
+
+  if [ $# -eq 0 ]
+  then
+    showHelp
+  fi
+
+  ACTION=$1
+
+  shift
+
+  case "${ACTION}" in
+
+    update)
+      update
+      ;;
+
+    one)
+      run one $*
+      ;;
+
+    two)
+      run two $*
+      ;;
+
+    *)
+     showHelp
+  esac
+
+  exit 0
+
+}
+
+#======================================================================================================================
+# showHelp
+#======================================================================================================================
+function showHelp() {
+
+  DATA_SEGMENT=$( grep -n '^<<< DATA >>>$' ${SCRIPT} | cut -d : -f 1 )
+
+  DATA_SEGMENT=$((${DATA_SEGMENT}+1))
+
+  tail -n +$DATA_SEGMENT ${SCRIPT} |
+    sed -r -e "s/@@NAME@@/${NAME}/g" -e "s/@@VERSION@@/${VERSION}/g"
+
+  exit 1
+}
+
+#======================================================================================================================
+# update
+#======================================================================================================================
+function update() {
+
+  updateBegin
+  updateCheckNewVersion
+  if [ $? -eq 1 ]
+  then
+    updateDownloadPackage
+    updatePreparePackage
+    updateOverwrite
+  fi
+  updateClean
+}
+
+#======================================================================================================================
+# updateBegin
+#======================================================================================================================
+function updateBegin() {
+  if [ -d ${TMP_DIR} ]
+  then
+    rm -rf ${TMP_DIR}
+  fi
+  mkdir ${TMP_DIR}
+}
+
+#======================================================================================================================
+# updateCheckNewVersion
+#======================================================================================================================
+function updateCheckNewVersion() {
+
+  LAST_VERSION_FILE=${TMP_DIR}/${UPDATE_VER}
+
+  wget -q -O ${LAST_VERSION_FILE} ${REPO_VER}
+  if [ $? -eq 0 ]
+  then
+    LAST_VERSION=$( cat ${LAST_VERSION_FILE} )
+    UPDATE=$( echo ${LAST_VERSION} | awk -v VERSION=${VERSION} '$1 > VERSION { print "YES" }' )
+    if [ "${UPDATE}" == "YES" ]
+    then
+      echo "New version ${LAST_VERSION} released !!!"
+      read -p "Do you want to update [y/n] ? " UPDATE
+      [ "${UPDATE}" == "y" ] && return 1
+    fi
+  fi
+
+  return 0
+}
+
+#======================================================================================================================
+# updateDownloadPackage
+#======================================================================================================================
+function updateDownloadPackage() {
+
+  PACKAGE=${TMP_DIR}/${UPDATE_PKG}
+
+  wget -q -O ${PACKAGE} ${REPO_ALL}
+  if [ $? -eq 0 ]
+  then
+    unzip -q -d ${TMP_DIR} ${PACKAGE}
+  fi
+}
+    
+#======================================================================================================================
+# updatePreparePackage
+#======================================================================================================================
+function updatePreparePackage() {
+
+  find ${TMP_DIR}/${UPDATE_DIR} -type f -exec chmod 755 {} \;
+}
+
+#======================================================================================================================
+# updateOverwrite
+#======================================================================================================================
+function updateOverwrite() {
+  return 0
+}
+
+#======================================================================================================================
+# updateClean
+#======================================================================================================================
+function updateClean() {
+  echo rm -rf ${TMP_DIR}
+}
+
+#======================================================================================================================
+# 
+#======================================================================================================================
+function run() {
+
+  SCRIPT=$1
+  shift
+
+  echo eval ${SCRIPT} $*
+}
+
+#======================================================================================================================
+# Script execution starting point !!!
+#======================================================================================================================
+main $*
+
+<<< DATA >>>
+
+@@NAME@@ @@VERSION@@ : ePages-vm scripts launcher 
+
+Usage: @@NAME@@ ACTION
+
+  Embedded actions:
+
+    update    Checks for new @@NAME@@ version
+
+    list      List of available vm-scripts
+
+ <<TODO>>
+
