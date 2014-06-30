@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1.1
+VERSION=1.4
 
 SCRIPT=$0
 NAME=$( basename ${SCRIPT} )
@@ -11,21 +11,20 @@ REPO_ALL=https://github.com/smartinez-epages/ePages-vm-tools/archive/master.zip
 
 UPDATE_VER=version.txt
 UPDATE_PKG=update.zip
-UPDATE_DIR=ePages-vm-tools-master
-UPDATE_BIN=${UPDATE_DIR}/scripts
+UPDATE_BIN=${TMP_DIR}/ePages-vm-tools-master/bin
+
+BACKUP_FILENAME=backup.tgz
+
+VERBOSE=1
+BATCHMODE=0
 
 #======================================================================================================================
 # main
 #======================================================================================================================
 function main() {
-
-  if [ $# -eq 0 ]
-  then
-    showHelp
-  fi
+  [ $# -eq 0 ] && showHelp
 
   ACTION=$1
-
   shift
 
   case "${ACTION}" in
@@ -51,14 +50,18 @@ function main() {
 }
 
 #======================================================================================================================
+# log
+#======================================================================================================================
+function log() {
+  [ $VERBOSE -ne 0 ] echo "$*"
+}
+
+#======================================================================================================================
 # showHelp
 #======================================================================================================================
 function showHelp() {
-
   DATA_SEGMENT=$( grep -n '^<<< DATA >>>$' ${SCRIPT} | cut -d : -f 1 )
-
   DATA_SEGMENT=$((${DATA_SEGMENT}+1))
-
   tail -n +$DATA_SEGMENT ${SCRIPT} |
     sed -r -e "s/@@NAME@@/${NAME}/g" -e "s/@@VERSION@@/${VERSION}/g"
 
@@ -69,7 +72,6 @@ function showHelp() {
 # update
 #======================================================================================================================
 function update() {
-
   updateBegin
   updateCheckNewVersion
   if [ $? -eq 1 ]
@@ -85,10 +87,7 @@ function update() {
 # updateBegin
 #======================================================================================================================
 function updateBegin() {
-  if [ -d ${TMP_DIR} ]
-  then
-    rm -rf ${TMP_DIR}
-  fi
+  [ -d ${TMP_DIR} ] && rm -rf ${TMP_DIR}
   mkdir ${TMP_DIR}
 }
 
@@ -96,9 +95,9 @@ function updateBegin() {
 # updateCheckNewVersion
 #======================================================================================================================
 function updateCheckNewVersion() {
-
   LAST_VERSION_FILE=${TMP_DIR}/${UPDATE_VER}
 
+  log "Checking for new versions ..."
   wget -q -O ${LAST_VERSION_FILE} ${REPO_VER}
   if [ $? -eq 0 ]
   then
@@ -106,7 +105,8 @@ function updateCheckNewVersion() {
     UPDATE=$( echo ${LAST_VERSION} | awk -v VERSION=${VERSION} '$1 > VERSION { print "YES" }' )
     if [ "${UPDATE}" == "YES" ]
     then
-      echo "New version ${LAST_VERSION} released !!!"
+      log "New version ${LAST_VERSION} released !!!"
+      [ ${BATCHMODE} -eq 1 ] return 1
       read -p "Do you want to update [y/n] ? " UPDATE
       [ "${UPDATE}" == "y" ] && return 1
     fi
@@ -119,12 +119,13 @@ function updateCheckNewVersion() {
 # updateDownloadPackage
 #======================================================================================================================
 function updateDownloadPackage() {
-
   PACKAGE=${TMP_DIR}/${UPDATE_PKG}
 
+  log "Downloading new version..."
   wget -q -O ${PACKAGE} ${REPO_ALL}
   if [ $? -eq 0 ]
   then
+    log "Unpacking new version..."
     unzip -q -d ${TMP_DIR} ${PACKAGE}
   fi
 }
@@ -133,21 +134,28 @@ function updateDownloadPackage() {
 # updatePreparePackage
 #======================================================================================================================
 function updatePreparePackage() {
-
-  find ${TMP_DIR}/${UPDATE_DIR} -type f -exec chmod 755 {} \;
+  [ -d ${UPDATE_BIN} ] && find ${UPDATE_BIN} -type f -exec chmod 755 {} \;
 }
 
 #======================================================================================================================
 # updateOverwrite
 #======================================================================================================================
 function updateOverwrite() {
-  return 0
+  if [ ${UPDATE_BIN} ]
+  then
+    log "Creating backup of current version in ${BACKUP_FILENAME}"
+    tar -C ${WRK_DIR} --exclude=${BACKUP_FILENAME} -czf ${UPDATE_BIN}/${BACKUP_FILENAME} .
+    log "Overwriting with new version"
+    rm -rf ${WRK_DIR}/
+    mv ${UPDATE_BIN}/* ${WRK_DIR}/
+  fi
 }
 
 #======================================================================================================================
 # updateClean
 #======================================================================================================================
 function updateClean() {
+  log "Cleaning up"
   echo rm -rf ${TMP_DIR}
 }
 
@@ -155,7 +163,6 @@ function updateClean() {
 # 
 #======================================================================================================================
 function run() {
-
   SCRIPT=$1
   shift
 
