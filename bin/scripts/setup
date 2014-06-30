@@ -1,0 +1,3 @@
+#!/bin/bash
+
+echo "Some ePages-vm setup: update {macaddress,ip,domain}, epages pre-settings, ..."

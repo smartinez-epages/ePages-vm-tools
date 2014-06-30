@@ -1,0 +1,2 @@
+mode|Changes the epages mode to {normal,debug}
+setup|Allows to setup some vm settings (macaddress, ip, epages config, ...)
