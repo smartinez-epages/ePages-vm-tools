@@ -1,9 +1,11 @@
 #!/bin/bash
-VERSION=1.4
+VERSION=1.5
 
 SCRIPT=$0
 NAME=$( basename ${SCRIPT} )
 WRK_DIR=$( dirname ${SCRIPT} )
+CFG_DIR=${WRK_DIR}/config
+BIN_DIR=${WRK_DIR}/scripts
 TMP_DIR=/tmp/${NAME}.$(date +'%Y%m%d%H%M%S')
 
 REPO_VER=https://github.com/smartinez-epages/ePages-vm-tools/raw/master/version.txt
@@ -17,6 +19,8 @@ BACKUP_FILENAME=backup.tgz
 
 VERBOSE=1
 BATCHMODE=0
+
+CFG_SCRIPTS=${CFG_DIR}/scripts
 
 #======================================================================================================================
 # main
@@ -109,6 +113,8 @@ function updateCheckNewVersion() {
       [ ${BATCHMODE} -eq 1 ] && return 1
       read -p "Do you want to update [y/n] ? " UPDATE
       [ "${UPDATE}" == "y" ] && return 1
+    else
+      log "${NAME} is up to date"
     fi
   fi
 
@@ -134,7 +140,7 @@ function updateDownloadPackage() {
 # updatePreparePackage
 #======================================================================================================================
 function updatePreparePackage() {
-  [ -d ${UPDATE_BIN} ] && find ${UPDATE_BIN} -type f -exec chmod 755 {} \;
+  [ -d ${UPDATE_BIN} ] && find ${UPDATE_BIN} -type f -name ${CONFIG_DIR} -prune -o -exec chmod 755 {} \;
 }
 
 #======================================================================================================================
@@ -156,7 +162,7 @@ function updateOverwrite() {
 #======================================================================================================================
 function updateClean() {
   log "Cleaning up"
-  echo rm -rf ${TMP_DIR}
+  rm -rf ${TMP_DIR}
 }
 
 #======================================================================================================================
@@ -164,17 +170,31 @@ function updateClean() {
 #======================================================================================================================
 function list() {
 
-  echo "lista de comandos"
+  echo -e "\nAvailable scripts:\n"
+  awk -F '|' '{
+    printf( "  %-20s%s\n", $1, $2 ) ;
+  }' ${CFG_SCRIPTS}
+  echo
 }
 
 #======================================================================================================================
 # 
 #======================================================================================================================
 function run() {
-  SCRIPT=$1
-  shift
-
-  echo eval ${SCRIPT} $*
+  grep "^$1|" ${CFG_SCRIPTS} > /dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    SCRIPT=${BIN_DIR}/$1
+    shift
+    if [ -x ${SCRIPT} ]
+    then
+      eval ${SCRIPT} $*
+    else
+      echo "ERROR: script '${SCRIPT}' not found !!!"
+    fi
+  else
+    echo "ERROR: Unknown script '$1'"
+  fi
 }
 
 #======================================================================================================================
@@ -187,12 +207,17 @@ main $*
 @@NAME@@ @@VERSION@@ : ePages-vm scripts launcher 
 
 Usage: @@NAME@@ ACTION
+       @@NAME@@ SCRIPT ARGUMENTS
 
   Embedded actions:
 
-    update    Checks for new @@NAME@@ version
+    update    Checks for new @@NAME@@ version to update
+    list      List of available scripts
 
-    list      List of available vm-scripts
+  Examples:
 
- <<TODO>>
+    @@NAME@@ update
+    @@NAME@@ list
+    @@NAME@@ setup macaddress
+
 
