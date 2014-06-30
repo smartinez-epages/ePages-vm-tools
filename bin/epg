@@ -152,7 +152,7 @@ function updateOverwrite() {
     log "Creating backup of current version in ${BACKUP_FILENAME}"
     tar -C ${WRK_DIR} --exclude=${BACKUP_FILENAME} -czf ${UPDATE_BIN}/${BACKUP_FILENAME} .
     log "Overwriting with new version"
-    rm -rf ${WRK_DIR}/
+    rm -rf ${WRK_DIR}/*
     mv ${UPDATE_BIN}/* ${WRK_DIR}/
   fi
 }
