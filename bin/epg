@@ -106,7 +106,7 @@ function updateCheckNewVersion() {
     if [ "${UPDATE}" == "YES" ]
     then
       log "New version ${LAST_VERSION} released !!!"
-      [ ${BATCHMODE} -eq 1 ] return 1
+      [ ${BATCHMODE} -eq 1 ] && return 1
       read -p "Do you want to update [y/n] ? " UPDATE
       [ "${UPDATE}" == "y" ] && return 1
     fi
