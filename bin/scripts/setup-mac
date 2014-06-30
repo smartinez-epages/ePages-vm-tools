@@ -2,15 +2,13 @@
 VERSION=1.0
 
 SCRIPT=$0
-NAME="${BREADCRUMB}$( basename ${SCRIPT} )"
+NAME="${BREADCRUMB} mac"
 WRK_DIR=$( dirname ${SCRIPT} )
 
 COMMON=${WRK_DIR}/common
 
-ACTION=none
-PARAMETERS=
-
-export BREADCRUMB="${NAME}"
+VERBOSE=1
+BATCHMODE=0
 
 #======================================================================================================================
 # main
@@ -21,25 +19,6 @@ function main() {
 
   getOptions $*
 
-  case "${ACTION}" in
-
-    ip)
-      ip ${PARAMETERS}
-      ;;
-
-    mac)
-      mac ${PARAMETERS}
-      ;;
-
-    epages)
-      epages ${PARAMETERS}
-      ;;
-
-    *)
-     error "Unknonw action '${ACTION}'"
-     showHelp
-  esac
-
   exit 0
 }
 
@@ -47,32 +26,32 @@ function main() {
 # getOptions
 #======================================================================================================================
 function getOptions() {
+
+  while getopts "h" OPTION
+  do
+    case ${OPTION} in
+      h|*)
+        showHelp
+    esac
+  done
+  shift $((OPTIND-1))
+
   [ $# -eq 0 ] && showHelp
 
-  ACTION=$1
-  shift
-  PARAMETERS="$*"
 }
 
 #======================================================================================================================
-# ip
+# one
 #======================================================================================================================
-function ip() {
-  eval ${WRK_DIR}/setup-ip ${PARAMETERS}
+function one() {
+  log "one(${PARAMETERS})"
 }
 
 #======================================================================================================================
-# mac
+# two
 #======================================================================================================================
-function mac() {
-  eval ${WRK_DIR}/setup-mac ${PARAMETERS}
-}
-
-#======================================================================================================================
-# epages
-#======================================================================================================================
-function epages() {
-  log "epages(${PARAMETERS})"
+function two() {
+  log "two(${PARAMETERS})"
 }
 
 #======================================================================================================================
@@ -82,19 +61,16 @@ main $*
 
 <<< DATA >>>
 
-@@NAME@@ @@VERSION@@ : Setup some vm settings (macaddress, ip, epages config, ...)
+@@NAME@@ @@VERSION@@ : Update macaddress OS settings if it has changed in the VM
 
-usage: @@NAME@@ OPERATION
+    If the macaddress of this VM has changed (did you clone it ?) you need to run this script
+    to reconfigure the network interfaces configuration files
 
-Available operations:
+usage: @@NAME@@ [ -h ]
 
-  ip        If you need to change the IP address and/or the DomainName.
-  mac       If the macaddress of this VM has changed.
-  epages    Run before to install epages
+  -h      Show this help
 
-Run the scripts with the option -h for details
+Examples:
 
-Example:
-
-  @@NAME@@ mac -h
+  @@NAME@@ mac
 

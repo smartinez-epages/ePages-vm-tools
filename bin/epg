@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1.6
+VERSION=1.7
 
 SCRIPT=$0
 NAME=$( basename ${SCRIPT} )
@@ -7,6 +7,8 @@ WRK_DIR=$( dirname ${SCRIPT} )
 CFG_DIR=${WRK_DIR}/config
 BIN_DIR=${WRK_DIR}/scripts
 TMP_DIR=/tmp/${NAME}.$(date +'%Y%m%d%H%M%S')
+
+COMMON=${BIN_DIR}/common
 
 REPO_VER=https://github.com/smartinez-epages/ePages-vm-tools/raw/master/version.txt
 REPO_ALL=https://github.com/smartinez-epages/ePages-vm-tools/archive/master.zip
@@ -19,6 +21,8 @@ BACKUP_FILENAME=backup.tgz
 
 VERBOSE=1
 BATCHMODE=0
+ACTION=
+PARAMETERS=
 
 CFG_SCRIPTS=${CFG_DIR}/scripts
 
@@ -26,10 +30,10 @@ CFG_SCRIPTS=${CFG_DIR}/scripts
 # main
 #======================================================================================================================
 function main() {
-  [ $# -eq 0 ] && showHelp
 
-  ACTION=$1
-  shift
+  . ${COMMON}
+
+  getOptions $*
 
   case "${ACTION}" in
 
@@ -41,35 +45,40 @@ function main() {
       list
       ;;
 
-    two)
-      run two $*
-      ;;
-
     *)
-     run $ACTION $*
+     run ${ACTION} ${PARAMETERS}
   esac
 
   exit 0
-
 }
 
 #======================================================================================================================
-# log
+# getOptions
 #======================================================================================================================
-function log() {
-  [ $VERBOSE -ne 0 ] && echo "$*"
-}
+function getOptions() {
 
-#======================================================================================================================
-# showHelp
-#======================================================================================================================
-function showHelp() {
-  DATA_SEGMENT=$( grep -n '^<<< DATA >>>$' ${SCRIPT} | cut -d : -f 1 )
-  DATA_SEGMENT=$((${DATA_SEGMENT}+1))
-  tail -n +$DATA_SEGMENT ${SCRIPT} |
-    sed -r -e "s/@@NAME@@/${NAME}/g" -e "s/@@VERSION@@/${VERSION}/g"
+  while getopts "hqb" OPTION
+  do
+    case ${OPTION} in
+      q)
+        VERBOSE=0
+        ;;
 
-  exit 1
+      x)
+        BATCHMODE=1
+        ;;
+
+      h|*)
+        showHelp
+    esac
+  done
+  shift $((OPTIND-1))
+
+  [ $# -eq 0 ] && showHelp
+
+  ACTION=$1
+  shift
+  PARAMETERS="$*"
 }
 
 #======================================================================================================================
@@ -188,12 +197,13 @@ function run() {
     shift
     if [ -x ${SCRIPT} ]
     then
+      export BREADCRUMB="${NAME} "
       eval ${SCRIPT} $*
     else
-      echo "ERROR: script '${SCRIPT}' not found !!!"
+      error "script '${SCRIPT}' not found !!!"
     fi
   else
-    echo "ERROR: Unknown script '$1'"
+    error "Unknown script '$1'"
   fi
 }
 
@@ -206,8 +216,14 @@ main $*
 
 @@NAME@@ @@VERSION@@ : ePages-vm scripts launcher 
 
-Usage: @@NAME@@ ACTION
+Usage: @@NAME@@ [ -h ] [ -q ] [ -b ] ACTION
        @@NAME@@ SCRIPT ARGUMENTS
+
+  Options:
+
+    -h        This help
+    -q        Quite mode
+    -b        Batch mode (do not ask for update confirmation)
 
   Embedded actions:
 

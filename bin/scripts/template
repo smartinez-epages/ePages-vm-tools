@@ -2,15 +2,16 @@
 VERSION=1.0
 
 SCRIPT=$0
-NAME="${BREADCRUMB}$( basename ${SCRIPT} )"
+NAME=$( basename ${SCRIPT} )
 WRK_DIR=$( dirname ${SCRIPT} )
 
 COMMON=${WRK_DIR}/common
 
+VERBOSE=1
+BATCHMODE=0
 ACTION=none
 PARAMETERS=
-
-export BREADCRUMB="${NAME}"
+VALUE=0
 
 #======================================================================================================================
 # main
@@ -21,18 +22,21 @@ function main() {
 
   getOptions $*
 
+  echo 
+  echo "VERBOSE:     ${VERBOSE}"
+  echo "VALUE:       ${VALUE}"
+  echo "ACTION:      ${ACTION}"
+  echo "PARAMETERS : ${PARAMETERS}"
+  echo 
+
   case "${ACTION}" in
 
-    ip)
-      ip ${PARAMETERS}
+    one)
+      one ${PARAMETERS}
       ;;
 
-    mac)
-      mac ${PARAMETERS}
-      ;;
-
-    epages)
-      epages ${PARAMETERS}
+    two)
+      two ${PARAMETERS}
       ;;
 
     *)
@@ -47,6 +51,24 @@ function main() {
 # getOptions
 #======================================================================================================================
 function getOptions() {
+
+  while getopts "qx:" OPTION
+  do
+    case ${OPTION} in
+      q)
+        VERBOSE=0
+        ;;
+
+      x)
+        VALUE=${OPTARG}
+        ;;
+
+      *)
+        showHelp
+    esac
+  done
+  shift $((OPTIND-1))
+
   [ $# -eq 0 ] && showHelp
 
   ACTION=$1
@@ -55,24 +77,17 @@ function getOptions() {
 }
 
 #======================================================================================================================
-# ip
+# one
 #======================================================================================================================
-function ip() {
-  eval ${WRK_DIR}/setup-ip ${PARAMETERS}
+function one() {
+  log "one(${PARAMETERS})"
 }
 
 #======================================================================================================================
-# mac
+# two
 #======================================================================================================================
-function mac() {
-  eval ${WRK_DIR}/setup-mac ${PARAMETERS}
-}
-
-#======================================================================================================================
-# epages
-#======================================================================================================================
-function epages() {
-  log "epages(${PARAMETERS})"
+function two() {
+  log "two(${PARAMETERS})"
 }
 
 #======================================================================================================================
@@ -82,19 +97,8 @@ main $*
 
 <<< DATA >>>
 
-@@NAME@@ @@VERSION@@ : Setup some vm settings (macaddress, ip, epages config, ...)
+@@NAME@@ @@VERSION@@ : template script
 
-usage: @@NAME@@ OPERATION
+Usage: @@NAME@@ [ -q ] [ -x value ] file1 file2
 
-Available operations:
-
-  ip        If you need to change the IP address and/or the DomainName.
-  mac       If the macaddress of this VM has changed.
-  epages    Run before to install epages
-
-Run the scripts with the option -h for details
-
-Example:
-
-  @@NAME@@ mac -h
 
