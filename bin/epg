@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1.7
+VERSION=1.8
 
 SCRIPT=$0
 NAME=$( basename ${SCRIPT} )
@@ -125,6 +125,8 @@ function updateCheckNewVersion() {
     else
       log "${NAME} is up to date"
     fi
+  else
+    error "Unable to retrieve version info (github unavailable ?)"
   fi
 
   return 0
@@ -142,6 +144,8 @@ function updateDownloadPackage() {
   then
     log "Unpacking new version..."
     unzip -q -d ${TMP_DIR} ${PACKAGE}
+  else
+    error "Unable to download package (github unavailable ?)"
   fi
 }
     
